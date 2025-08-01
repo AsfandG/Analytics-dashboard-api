@@ -1,8 +1,9 @@
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
 
 const auth = asyncHandler(async (req, res, next) => {
-  const token = req.cookies.token;
+  const token = req.cookies.accessToken;
   if (!token) {
     return res
       .status(401)
@@ -10,7 +11,13 @@ const auth = asyncHandler(async (req, res, next) => {
   }
 
   const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-  req.user = decodedToken;
+  const user = await User.findById(decodedToken?.id).select(
+    "-password -refreshToken"
+  );
+  if (!user) {
+    return res.status(401).json({ message: "Invalid access token" });
+  }
+  req.user = user;
 
   next();
 });

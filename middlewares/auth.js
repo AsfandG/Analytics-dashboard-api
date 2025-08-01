@@ -10,7 +10,7 @@ const auth = asyncHandler(async (req, res, next) => {
       .json({ success: false, message: "Please login to continue" });
   }
 
-  const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+  const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
   const user = await User.findById(decodedToken?.id).select(
     "-password -refreshToken"
   );

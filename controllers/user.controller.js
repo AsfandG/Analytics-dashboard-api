@@ -108,7 +108,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
 // Logout
 const logout = asyncHandler(async (req, res) => {
-  res.clearCookie("accessToken", { httpOnly: true });
+  const options = {
+    httpOnly: true,
+    secure: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  };
+  res.clearCookie("accessToken", options);
+  res.clearCookie("refreshToken", options);
 
   res.status(200).json({ success: true, message: "User Logged Out!" });
 });
@@ -147,4 +153,35 @@ const refreshToken = asyncHandler(async (req, res) => {
     .json({ success: true, accessToken, refreshToken });
 });
 
-export { registerUser, loginUser, logout, refreshToken };
+// Change Password
+const changePassword = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const { oldPassword, newPassword } = req.body;
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return res.status(400).json({ message: "user not found!" });
+  }
+
+  //   console.log("user password:::", user.password);
+  //   console.log("input password:::", oldPassword);
+
+  const isValidPassword = await bcrypt.compare(oldPassword, user.password);
+
+  if (!isValidPassword) {
+    return res
+      .status(401)
+      .json({ success: false, message: "old password is incorrect" });
+  }
+
+  const hashPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashPassword;
+  await user.save();
+
+  return res
+    .status(200)
+    .json({ success: true, message: "Password changed successfully!" });
+});
+
+export { registerUser, loginUser, logout, refreshToken, changePassword };

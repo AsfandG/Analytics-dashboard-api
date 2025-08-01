@@ -21,8 +21,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// app.get("/", auth, admin, (req, res) => {
-app.get("/", (req, res) => {
+app.get("/", auth, (req, res) => {
+  // app.get("/", (req, res) => {
   res.status(200).json({ message: "healty" });
 });
 

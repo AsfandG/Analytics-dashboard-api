@@ -1,12 +1,14 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
+import { v2 as cloudinary } from "cloudinary";
 import {
   generateAccessToken,
   generateRefreshToken,
 } from "../utils/generate-token.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -40,7 +42,10 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password: hashedPassword,
-    avatar: avatar.secure_url,
+    avatar: {
+      url: avatar.secure_url,
+      public_id: avatar.public_id,
+    },
   });
   const refreshToken = generateAccessToken(user._id, user.role);
   user.refreshToken = refreshToken;
@@ -164,9 +169,6 @@ const changePassword = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "user not found!" });
   }
 
-  //   console.log("user password:::", user.password);
-  //   console.log("input password:::", oldPassword);
-
   const isValidPassword = await bcrypt.compare(oldPassword, user.password);
 
   if (!isValidPassword) {
@@ -184,4 +186,34 @@ const changePassword = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Password changed successfully!" });
 });
 
-export { registerUser, loginUser, logout, refreshToken, changePassword };
+// Delete User
+const deleteUser = asyncHandler(async (req, res) => {
+  const userId = req.params.id;
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid user ID!" });
+  }
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found!" });
+  }
+
+  if (user.avatar?.public_id) {
+    await cloudinary.uploader.destroy(user.avatar.public_id);
+  }
+
+  await User.findByIdAndDelete(userId);
+
+  res.status(200).json({ success: true, message: "User deleted!" });
+});
+
+export {
+  registerUser,
+  loginUser,
+  logout,
+  refreshToken,
+  changePassword,
+  deleteUser,
+};

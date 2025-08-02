@@ -209,6 +209,42 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "User deleted!" });
 });
 
+// Get All Users
+const getUsers = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 5;
+  const skip = (page - 1) * limit;
+
+  const sortBy = req.query.sortBy || "createdAt";
+  const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+  const sortObj = {};
+
+  sortObj[sortBy] = sortOrder;
+
+  const [users, total] = await Promise.all([
+    User.find().skip(skip).limit(limit).sort(sortObj),
+    User.countDocuments(),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  if (!users) {
+    return res
+      .status(404)
+      .json({ success: false, message: "users not found!" });
+  }
+
+  res
+    .status(200)
+    .json({
+      success: true,
+      currentPage: page,
+      totalPages,
+      totalUsers: total,
+      users,
+    });
+});
+
 export {
   registerUser,
   loginUser,
@@ -216,4 +252,5 @@ export {
   refreshToken,
   changePassword,
   deleteUser,
+  getUsers,
 };

@@ -9,6 +9,7 @@ import {
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import crypto from "node:crypto";
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -27,14 +28,15 @@ const registerUser = asyncHandler(async (req, res) => {
       .json({ success: false, message: "User already exist!" });
   }
 
-  const avatarLocalPath = req.file?.path || null;
-  if (!avatarLocalPath) {
-    return res
-      .status(400)
-      .json({ success: false, message: "something went wrong!" });
+  let avatarData = null;
+  const avatarLocalPath = req.file?.path;
+  if (avatarLocalPath) {
+    const avatar = await uploadToCloudinary(avatarLocalPath);
+    avatarData = {
+      url: avatar.secure_url,
+      public_id: avatar.public_id,
+    };
   }
-
-  const avatar = await uploadToCloudinary(avatarLocalPath);
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -42,10 +44,7 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password: hashedPassword,
-    avatar: {
-      url: avatar.secure_url,
-      public_id: avatar.public_id,
-    },
+    ...(avatarData && { avatar: avatarData }),
   });
   const refreshToken = generateAccessToken(user._id, user.role);
   user.refreshToken = refreshToken;
@@ -219,7 +218,9 @@ const getUsers = asyncHandler(async (req, res) => {
   const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
   const sortObj = {};
 
-  sortObj[sortBy] = sortOrder;
+  sortObj[sortBy] = sortOrder; // {createdAt: 1}
+
+  //   console.log("sort object >>>", sortObj);
 
   const [users, total] = await Promise.all([
     User.find().skip(skip).limit(limit).sort(sortObj),
@@ -234,15 +235,34 @@ const getUsers = asyncHandler(async (req, res) => {
       .json({ success: false, message: "users not found!" });
   }
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      currentPage: page,
-      totalPages,
-      totalUsers: total,
-      users,
-    });
+  res.status(200).json({
+    success: true,
+    currentPage: page,
+    totalPages,
+    totalUsers: total,
+    users,
+  });
+});
+
+const forgetPassword = asyncHandler(async (req, res) => {
+  const email = req.body.email;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res
+      .status(404)
+      .json({ success: false, message: `user with email ${email} not found` });
+  }
+
+  const resetToken = crypto.randomBytes(60).toString("hex"); // it will generate plain token
+
+  user.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  user.passwordResetTokenExpire = Date.now() + 10 * 60 * 1000;
+  await user.save();
+  res.status(200).json("forget password");
 });
 
 export {
@@ -253,4 +273,5 @@ export {
   changePassword,
   deleteUser,
   getUsers,
+  forgetPassword,
 };

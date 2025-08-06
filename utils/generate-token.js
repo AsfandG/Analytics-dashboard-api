@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 export const generateAccessToken = (userId, role) => {
   const token = jwt.sign(
@@ -21,4 +22,14 @@ export const generateRefreshToken = (userId, role) => {
   );
 
   return token;
+};
+
+export const generateResetToken = () => {
+  const resetToken = crypto.randomBytes(60).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  const expireTime = Date.now() + 10 * 60 * 1000; // 10 mins
+  return { resetToken, hashedToken, expireTime };
 };

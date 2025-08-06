@@ -5,11 +5,14 @@ import { v2 as cloudinary } from "cloudinary";
 import {
   generateAccessToken,
   generateRefreshToken,
+  generateResetToken,
 } from "../utils/generate-token.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import crypto from "node:crypto";
+import nodemailer from "nodemailer";
+import { sendEmail } from "../utils/send-email.js";
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -254,15 +257,46 @@ const forgetPassword = asyncHandler(async (req, res) => {
       .json({ success: false, message: `user with email ${email} not found` });
   }
 
-  const resetToken = crypto.randomBytes(60).toString("hex"); // it will generate plain token
+  // const resetToken = crypto.randomBytes(60).toString("hex"); // it will generate plain token
 
-  user.passwordResetToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
-  user.passwordResetTokenExpire = Date.now() + 10 * 60 * 1000;
+  // user.passwordResetToken = crypto
+  //   .createHash("sha256")
+  //   .update(resetToken)
+  //   .digest("hex");
+  const { resetToken, hashedToken, expireTime } = generateResetToken();
+  user.passwordResetToken = hashedToken;
+  user.passwordResetTokenExpire = expireTime;
   await user.save();
-  res.status(200).json("forget password");
+
+  const resetUrl = `${process.env.CLIENT}/auth/reset-password/${resetToken}`;
+
+  await sendEmail({
+    to: email,
+    subject: "Password reset request",
+    text: `Click on this link to generate your new password: ${resetUrl}`,
+  });
+
+  // const transporter = nodemailer.createTransport({
+  //   service: "gmail",
+  //   secure: true,
+  //   auth: {
+  //     user: process.env.USER_EMAIL,
+  //     pass: process.env.USER_PASS,
+  //   },
+  // });
+
+  // const receiver = {
+  //   from: "e-billing@gmail.com",
+  //   to: email,
+  //   subject: "Password reset request",
+  //   text: `Click on this link to generate your new password ${process.env.CLIENT}/auth/reset-password/${resetToken}`,
+  // };
+
+  // await transporter.sendMail(receiver);
+  res.status(200).json({
+    success: true,
+    message: "password reset link sent successfully. please check your email",
+  });
 });
 
 export {

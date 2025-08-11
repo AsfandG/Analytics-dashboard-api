@@ -257,12 +257,6 @@ const forgetPassword = asyncHandler(async (req, res) => {
       .json({ success: false, message: `user with email ${email} not found` });
   }
 
-  // const resetToken = crypto.randomBytes(60).toString("hex"); // it will generate plain token
-
-  // user.passwordResetToken = crypto
-  //   .createHash("sha256")
-  //   .update(resetToken)
-  //   .digest("hex");
   const { resetToken, hashedToken, expireTime } = generateResetToken();
   user.passwordResetToken = hashedToken;
   user.passwordResetTokenExpire = expireTime;
@@ -276,26 +270,45 @@ const forgetPassword = asyncHandler(async (req, res) => {
     text: `Click on this link to generate your new password: ${resetUrl}`,
   });
 
-  // const transporter = nodemailer.createTransport({
-  //   service: "gmail",
-  //   secure: true,
-  //   auth: {
-  //     user: process.env.USER_EMAIL,
-  //     pass: process.env.USER_PASS,
-  //   },
-  // });
-
-  // const receiver = {
-  //   from: "e-billing@gmail.com",
-  //   to: email,
-  //   subject: "Password reset request",
-  //   text: `Click on this link to generate your new password ${process.env.CLIENT}/auth/reset-password/${resetToken}`,
-  // };
-
-  // await transporter.sendMail(receiver);
   res.status(200).json({
     success: true,
     message: "password reset link sent successfully. please check your email",
+  });
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Password is required!" });
+  }
+
+  const hashedToken = crypto.createHash("Sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetTokenExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid or expired Token!" });
+  }
+
+  user.password = await bcrypt.hash(password, 10);
+
+  user.passwordResetToken = undefined;
+  user.passwordResetTokenExpire = undefined;
+
+  await user.save();
+  res.status(200).json({
+    success: true,
+    message:
+      "Password reset successful. You can now log in with your new password",
   });
 });
 
@@ -308,4 +321,5 @@ export {
   deleteUser,
   getUsers,
   forgetPassword,
+  resetPassword,
 };

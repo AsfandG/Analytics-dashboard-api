@@ -11,7 +11,7 @@ import { uploadToCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import crypto from "node:crypto";
-import nodemailer from "nodemailer";
+
 import { sendEmail } from "../utils/send-email.js";
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -54,14 +54,14 @@ const registerUser = asyncHandler(async (req, res) => {
     emailVerificationTokenExpire: expireTime,
   });
 
+  await user.save();
+
   const verifyUrl = `${process.env.CLIENT}/auth/verify-email/${resetToken}`;
   await sendEmail({
     to: user.email,
     subject: "Verify your Email",
     text: `Please verify your email by clicking on the following link: ${verifyUrl}`,
   });
-
-  const createdUser = await User.findById(user._id).select("-password");
 
   res.status(200).json({
     success: true,
@@ -279,6 +279,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
   });
 });
 
+// Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
@@ -315,6 +316,38 @@ const resetPassword = asyncHandler(async (req, res) => {
   });
 });
 
+// Verify email
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+
+  // Hash the token from the link
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  // Find matching user with unexpired token
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationTokenExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid or expired verification link",
+    });
+  }
+
+  // Mark as verified
+  user.isVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationTokenExpire = undefined;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Email verified successfully! You can now log in.",
+  });
+});
+
 export {
   registerUser,
   loginUser,
@@ -325,4 +358,5 @@ export {
   getUsers,
   forgetPassword,
   resetPassword,
+  verifyEmail,
 };

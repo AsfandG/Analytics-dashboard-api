@@ -9,6 +9,7 @@ import {
   refreshToken,
   registerUser,
   resetPassword,
+  verifyEmail,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { admin, auth } from "../middlewares/auth.js";
@@ -24,5 +25,6 @@ router.delete("/delete-user/:id", auth, admin, deleteUser);
 router.get("/users", auth, getUsers);
 router.post("/forget-password", forgetPassword);
 router.post("/reset-password/:token", resetPassword);
+router.get("/verify-email/:token", verifyEmail);
 
 export default router;

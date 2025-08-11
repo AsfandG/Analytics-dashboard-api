@@ -43,27 +43,30 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  const { resetToken, hashedToken, expireTime } = generateResetToken(1440);
+
   const user = new User({
     name,
     email,
     password: hashedPassword,
     ...(avatarData && { avatar: avatarData }),
+    emailVerificationToken: hashedToken,
+    emailVerificationTokenExpire: expireTime,
   });
-  const refreshToken = generateAccessToken(user._id, user.role);
-  user.refreshToken = refreshToken;
-  await user.save();
 
-  const accessToken = generateAccessToken(user._id, user.role);
+  const verifyUrl = `${process.env.CLIENT}/auth/verify-email/${resetToken}`;
+  await sendEmail({
+    to: user.email,
+    subject: "Verify your Email",
+    text: `Please verify your email by clicking on the following link: ${verifyUrl}`,
+  });
 
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
+  const createdUser = await User.findById(user._id).select("-password");
 
   res.status(200).json({
     success: true,
-    message: "User registered successfully!",
-    user: createdUser,
-    accessToken,
+    message:
+      "User registered successfully! Please check your email to verify your account",
   });
 });
 
@@ -257,7 +260,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
       .json({ success: false, message: `user with email ${email} not found` });
   }
 
-  const { resetToken, hashedToken, expireTime } = generateResetToken();
+  const { resetToken, hashedToken, expireTime } = generateResetToken(10);
   user.passwordResetToken = hashedToken;
   user.passwordResetTokenExpire = expireTime;
   await user.save();

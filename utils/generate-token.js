@@ -24,12 +24,12 @@ export const generateRefreshToken = (userId, role) => {
   return token;
 };
 
-export const generateResetToken = () => {
+export const generateResetToken = (minutes = 10) => {
   const resetToken = crypto.randomBytes(60).toString("hex");
   const hashedToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-  const expireTime = Date.now() + 10 * 60 * 1000; // 10 mins
+  const expireTime = Date.now() + minutes * 60 * 1000; // 10 mins
   return { resetToken, hashedToken, expireTime };
 };

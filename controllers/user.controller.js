@@ -316,14 +316,11 @@ const resetPassword = asyncHandler(async (req, res) => {
   });
 });
 
-// Verify email
 const verifyEmail = asyncHandler(async (req, res) => {
   const { token } = req.params;
 
-  // Hash the token from the link
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  // Find matching user with unexpired token
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
     emailVerificationTokenExpire: { $gt: Date.now() },
@@ -336,7 +333,6 @@ const verifyEmail = asyncHandler(async (req, res) => {
     });
   }
 
-  // Mark as verified
   user.isVerified = true;
   user.emailVerificationToken = undefined;
   user.emailVerificationTokenExpire = undefined;

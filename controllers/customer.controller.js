@@ -69,10 +69,34 @@ const getCustomer = asyncHandler(async (req, res) => {
 });
 
 const updateCustomer = asyncHandler(async (req, res) => {
-  res.status(200).json({ success: true });
+  const { name, email, phone, address } = req.body;
+  const id = req.params.id;
+
+  const updatedCustomer = await Customer.findByIdAndUpdate(
+    id,
+    { name, email, phone, address },
+    { new: true }
+  );
+
+  if (!updatedCustomer) {
+    return res.status(400).json({
+      success: false,
+      message: "something went wrong while updating customer!",
+    });
+  }
+
+  res.status(200).json({ success: true, customer: updateCustomer });
 });
+
 const deleteCustomer = asyncHandler(async (req, res) => {
-  res.status(200).json({ success: true });
+  const customer = await Customer.findByIdAndDelete(req.params.id);
+
+  if (!customer) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Customer not found!" });
+  }
+  res.status(200).json({ success: true, message: "customer deleted!" });
 });
 
 export {

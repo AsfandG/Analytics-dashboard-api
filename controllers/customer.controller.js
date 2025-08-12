@@ -42,10 +42,21 @@ const createCustomer = asyncHandler(async (req, res) => {
 });
 
 const getCustomers = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 5;
+  const skip = (page - 1) * limit;
+  const sortBy = req.query.sortBy || "createdAt";
+  const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+
+  const sortObj = {};
+  sortObj[sortBy] = sortOrder;
+
   const [customers, total] = await Promise.all([
-    Customer.find(),
+    Customer.find().skip(skip).limit(limit).sort(sortObj),
     Customer.countDocuments(),
   ]);
+
+  const totalPages = Math.ceil(total / limit);
 
   if (!customers) {
     return res
@@ -53,7 +64,13 @@ const getCustomers = asyncHandler(async (req, res) => {
       .json({ success: false, message: "No customers exist" });
   }
 
-  res.status(200).json({ success: true, total, customers });
+  res.status(200).json({
+    success: true,
+    currentPage: page,
+    totalPages,
+    totalCustomers: total,
+    customers,
+  });
 });
 
 const getCustomer = asyncHandler(async (req, res) => {
@@ -85,7 +102,7 @@ const updateCustomer = asyncHandler(async (req, res) => {
     });
   }
 
-  res.status(200).json({ success: true, customer: updateCustomer });
+  res.status(200).json({ success: true, customer: updatedCustomer });
 });
 
 const deleteCustomer = asyncHandler(async (req, res) => {

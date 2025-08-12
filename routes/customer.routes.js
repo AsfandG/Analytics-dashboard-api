@@ -6,10 +6,11 @@ import {
   getCustomers,
   updateCustomer,
 } from "../controllers/customer.controller.js";
+import { auth } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-router.post("/customer", createCustomer);
+router.post("/customer", auth, createCustomer);
 router.get("/customers", getCustomers);
 router.get("/customers/:id", getCustomer);
 router.patch("/customers/:id", updateCustomer);

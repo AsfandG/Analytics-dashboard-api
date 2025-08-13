@@ -4,6 +4,7 @@ import express from "express";
 import connectDB from "./utils/db.js";
 import userRoutes from "./routes/user.routes.js";
 import customerRoutes from "./routes/customer.routes.js";
+import productRoutes from "./routes/product.routes.js";
 import cookieParser from "cookie-parser";
 import errorHandler from "./middlewares/error-handler.js";
 import { admin, auth } from "./middlewares/auth.js";
@@ -29,6 +30,7 @@ app.get("/", auth, (req, res) => {
 
 app.use("/auth", userRoutes);
 app.use("/api", customerRoutes);
+app.use("/api", productRoutes);
 
 const startServer = async () => {
   await connectDB();

@@ -34,7 +34,7 @@ const createCustomer = asyncHandler(async (req, res) => {
     createdBy: req.user._id,
   });
 
-  res.status(200).json({
+  res.status(201).json({
     success: true,
     message: "Customer created successfully",
     customer: newCustomer,
@@ -106,14 +106,19 @@ const updateCustomer = asyncHandler(async (req, res) => {
 });
 
 const deleteCustomer = asyncHandler(async (req, res) => {
-  const customer = await Customer.findByIdAndDelete(req.params.id);
+  const customer = await Customer.findByIdAndUpdate(
+    req.params.id,
+    { isDeleted: true },
+    { new: true }
+  );
 
   if (!customer) {
     return res
       .status(404)
       .json({ success: false, message: "Customer not found!" });
   }
-  res.status(200).json({ success: true, message: "customer deleted!" });
+
+  res.status(200).json({ success: true, message: "Customer soft deleted!" });
 });
 
 export {

@@ -5,9 +5,9 @@ import connectDB from "./utils/db.js";
 import userRoutes from "./routes/user.routes.js";
 import customerRoutes from "./routes/customer.routes.js";
 import productRoutes from "./routes/product.routes.js";
+import invoiceRoutes from "./routes/invoice.routes.js";
 import cookieParser from "cookie-parser";
 import errorHandler from "./middlewares/error-handler.js";
-import { admin, auth } from "./middlewares/auth.js";
 import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
@@ -23,14 +23,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.get("/", auth, (req, res) => {
-  // app.get("/", (req, res) => {
+// app.get("/", auth, (req, res) => {
+app.get("/", (req, res) => {
   res.status(200).json({ message: "healty" });
 });
 
 app.use("/auth", userRoutes);
 app.use("/api", customerRoutes);
 app.use("/api", productRoutes);
+app.use("/api", invoiceRoutes);
 
 const startServer = async () => {
   await connectDB();

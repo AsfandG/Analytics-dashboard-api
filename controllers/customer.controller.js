@@ -48,12 +48,18 @@ const getCustomers = asyncHandler(async (req, res) => {
   const sortBy = req.query.sortBy || "createdAt";
   const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
 
+  const search = req.query.search || "";
+
+  const filter = {
+    ...(search && { name: { $regex: search, $options: "i" } }),
+  };
+
   const sortObj = {};
   sortObj[sortBy] = sortOrder;
 
   const [customers, total] = await Promise.all([
-    Customer.find().skip(skip).limit(limit).sort(sortObj),
-    Customer.countDocuments(),
+    Customer.find(filter).skip(skip).limit(limit).sort(sortObj),
+    Customer.countDocuments(filter),
   ]);
 
   const totalPages = Math.ceil(total / limit);

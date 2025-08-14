@@ -2,12 +2,13 @@ import asyncHandler from "express-async-handler";
 import Product from "../models/product.model.js";
 
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, price } = req.body;
+  const { name, description, price, isService } = req.body;
 
   const product = await Product.create({
     name,
     description,
     price,
+    isService,
     createdBy: req.user._id,
   });
 
@@ -28,8 +29,16 @@ const getProducts = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 5;
   const skip = (page - 1) * limit;
 
+  const search = req.query.search || "";
+  const isService = req.query.isService;
+
+  const filter = {
+    ...(search && { name: { $regex: search, $options: "i" } }),
+    ...(isService !== undefined && { isService: isService === "true" }),
+  };
+
   const [products, total] = await Promise.all([
-    Product.find().skip(skip).limit(limit),
+    Product.find(filter).skip(skip).limit(limit),
     Product.countDocuments(),
   ]);
 
@@ -81,6 +90,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "product updated!", product });
 });
 const deleteProduct = asyncHandler(async (req, res) => {
+  // TODO: Prevent deletion if the product exists in any invoice
   const product = await Product.findByIdAndUpdate(
     req.params.id,
     { isDeleted: true },

@@ -19,9 +19,7 @@ export const createTransaction = asyncHandler(async (req, res) => {
       discount,
       notes,
     } = req.body;
-    const userId = req.user._id;
 
-    // 1️ Validate customer
     const foundCustomer = await Customer.findById(customer);
     if (!foundCustomer) {
       return res.status(400).json({

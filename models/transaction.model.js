@@ -25,7 +25,7 @@ const transactionSchema = new Schema(
         },
         total: {
           type: Number,
-          required: true,
+          // required: true,
         },
       },
     ],
@@ -45,7 +45,7 @@ const transactionSchema = new Schema(
     },
     subTotal: {
       type: Number,
-      required: true,
+      // required: true,
     },
     tax: {
       type: Number,
@@ -57,7 +57,7 @@ const transactionSchema = new Schema(
     },
     grandTotal: {
       type: Number,
-      required: true,
+      // required: true,
     },
     notes: {
       type: String,
